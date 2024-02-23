@@ -160,8 +160,9 @@ class BinaryPuzzle:
 if __name__ == '__main__':
     input_puzzle = webparser.parse()
     puzzle = BinaryPuzzle(input_puzzle)
+    puzzle.to_csv('data/puzzle.csv')
+
     solution = puzzle.solve()
     print(solution)
     print(solution.verify())
-    puzzle.to_csv('puzzle.csv')
-    print(puzzle.puzzle.dtype)
+    solution.to_csv('data/solution.csv')
