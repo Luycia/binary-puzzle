@@ -1,13 +1,30 @@
+import random
 import re
+from enum import Enum
+
+import numpy as np
 import requests
 from bs4 import BeautifulSoup
-import numpy as np
 
-URL = "https://www.binarypuzzle.com/"
+BASE_URL = "https://www.binarypuzzle.com/"
 
 
-def parse():
-    soup = BeautifulSoup(requests.get(URL).text, features='lxml')
+class Difficulty(Enum):
+    EASY = 1
+    MEDIUM = 2
+    HARD = 3
+    VERY_HARD = 4
+
+
+def get(idx: int = random.randint(1, 200), size: int = 10, difficulty: Difficulty = Difficulty.MEDIUM):
+    if idx < 1 or idx > 200:
+        raise ValueError("Idx must be between 1 and 200")
+
+    if size not in [6, 8, 10, 12, 14]:
+        raise ValueError("Only size 6, 8, 10, 12, 14 are supported")
+
+    url = f"{BASE_URL}/puzzles.php?size={size}&level={difficulty.value}&nr={idx}"
+    soup = BeautifulSoup(requests.get(url).text, 'html.parser')
     grid = [match.text.strip()
             for match in soup.find_all('p', id=re.compile('celpar_'))]
     grid = np.array([int(num) if num.isdigit() else -1 for num in grid])

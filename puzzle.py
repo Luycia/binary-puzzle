@@ -19,12 +19,15 @@ class BinaryPuzzle:
                 f"Grid must be 2-dimensional, but actual {len(self.puzzle.shape)} dimensions")
 
         if self.puzzle.shape[0] != self.puzzle.shape[1]:
-            raise ValueError(f"Grid must be quadratic shape, expected {self.N}x{
-                             self.N}, but actual {self.puzzle.shape[0]}x{self.puzzle.shape[1]}")
+            raise ValueError(
+                f"Grid must be quadratic shape, expected {self.N}x{self.N}, but actual {self.puzzle.shape[0]}x{self.puzzle.shape[1]}")
 
-        if self.puzzle.shape[0] < 2:
-            raise ValueError("Grid size must be greater equal than 2")
-        
+        if self.N % 2 != 0:
+            raise ValueError("Grid size must be even")
+
+        if self.N == 0:
+            raise ValueError("Grid must be at least size 2")
+
         return True
 
     def check_binary(self) -> bool:
@@ -67,7 +70,7 @@ class BinaryPuzzle:
             raise ValueError("All rows and columns must be unique")
 
         return True
-    
+
     def to_csv(self, filename: str) -> None:
         np.savetxt(filename, self.puzzle, fmt='%i', delimiter=',')
 
@@ -93,7 +96,6 @@ class BinaryPuzzle:
 
         return s
 
-
     def solve(self) -> Self:
         prob = pulp.LpProblem("Binary_Puzzle_Solver")
 
@@ -113,35 +115,37 @@ class BinaryPuzzle:
         for row in rows:
             for col in cols:
                 prob.addConstraint(pulp.LpConstraint(e=pulp.lpSum([grid_vars[row][col][value] for value in values]),
-                                                    sense=pulp.LpConstraintEQ, rhs=1, name=f"constraint_sum_{row}_{col}"))
+                                                     sense=pulp.LpConstraintEQ, rhs=1, name=f"constraint_sum_{row}_{col}"))
 
         # CONSTRAINT 2: Constraint to ensure parity of rows
         for row in rows:
             for value in values:
                 prob.addConstraint(pulp.LpConstraint(e=pulp.lpSum([grid_vars[row][col][value] for col in cols]),
-                                                    sense=pulp.LpConstraintEQ, rhs=self.N/2, name=f"constraint_sum_row_{row}_{value}_eq{self.N/2}"))
+                                                     sense=pulp.LpConstraintEQ, rhs=self.N/2, name=f"constraint_sum_row_{row}_{value}_eq{self.N/2}"))
 
         # CONSTRAINT 3: Constraint to ensure parity of cols
         for col in cols:
             for value in values:
                 prob.addConstraint(pulp.LpConstraint(e=pulp.lpSum([grid_vars[row][col][value] for row in rows]),
-                                                    sense=pulp.LpConstraintEQ, rhs=self.N/2, name=f"constraint_sum_col_{col}_{value}_eq{self.N/2}"))
+                                                     sense=pulp.LpConstraintEQ, rhs=self.N/2, name=f"constraint_sum_col_{col}_{value}_eq{self.N/2}"))
 
         # CONSTRAINT 4: Constraint to ensure no triples
         for triple in range(self.N - 3 + 1):
             for value in values:
                 for row in rows:
-                    prob.addConstraint(pulp.LpConstraint(e=pulp.lpSum([grid_vars[row][col+triple][value] for col in range(3)]), sense=pulp.LpConstraintLE, rhs=2, name=f"constraint_triple_row_{row}_col_{col+triple}{value}"))
+                    prob.addConstraint(pulp.LpConstraint(e=pulp.lpSum([grid_vars[row][col+triple][value] for col in range(
+                        3)]), sense=pulp.LpConstraintLE, rhs=2, name=f"constraint_triple_row_{row}_col_{col+triple}{value}"))
 
                 for col in cols:
-                    prob.addConstraint(pulp.LpConstraint(e=pulp.lpSum([grid_vars[row+triple][col][value] for row in range(3)]), sense=pulp.LpConstraintLE, rhs=2, name=f"constraint_triple_col_{col}_row_{row+triple}{value}"))
+                    prob.addConstraint(pulp.LpConstraint(e=pulp.lpSum([grid_vars[row+triple][col][value] for row in range(
+                        3)]), sense=pulp.LpConstraintLE, rhs=2, name=f"constraint_triple_col_{col}_row_{row+triple}{value}"))
 
         # Fill the prefilled values from input puzzle as constraints
         for row in rows:
             for col in cols:
                 if (input_puzzle[row][col] != -1):
                     prob.addConstraint(pulp.LpConstraint(e=pulp.lpSum([grid_vars[row][col][value]*value for value in values]),
-                                    sense=pulp.LpConstraintEQ, rhs=input_puzzle[row][col], name=f"constraint_prefilled_{row}_{col}"))
+                                                         sense=pulp.LpConstraintEQ, rhs=input_puzzle[row][col], name=f"constraint_prefilled_{row}_{col}"))
 
         prob.solve()
         print(f'Solution Status = {pulp.LpStatus[prob.status]}')
@@ -158,11 +162,12 @@ class BinaryPuzzle:
 
 
 if __name__ == '__main__':
-    input_puzzle = webparser.parse()
+    input_puzzle = webparser.get(
+        idx=1, size=10, difficulty=webparser.Difficulty.VERY_HARD)
     puzzle = BinaryPuzzle(input_puzzle)
     puzzle.to_csv('data/puzzle.csv')
 
     solution = puzzle.solve()
     print(solution)
-    print(solution.verify())
+    print("Is solutin valid:", solution.verify())
     solution.to_csv('data/solution.csv')

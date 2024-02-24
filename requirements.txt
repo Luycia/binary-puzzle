@@ -1,0 +1,4 @@
+beautifulsoup4==4.12.3
+numpy==1.26.4
+PuLP==2.8.0
+Requests==2.31.0
