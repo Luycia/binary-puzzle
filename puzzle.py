@@ -9,19 +9,19 @@ import webpuzzle
 
 class BinaryPuzzle:
 
-    def __init__(self, puzzle) -> None:
-        self.puzzle = np.asarray(puzzle)
-        self.N = self.puzzle.shape[0]
+    def __init__(self, grid) -> None:
+        self.grid = np.asarray(grid)
+        self.N = self.grid.shape[0]
         self._check_valid_shape()
 
     def _check_valid_shape(self):
-        if len(self.puzzle.shape) != 2:
+        if len(self.grid.shape) != 2:
             raise ValueError(
-                f"Grid must be 2-dimensional, but actual {len(self.puzzle.shape)} dimensions")
+                f"Grid must be 2-dimensional, but actual {len(self.grid.shape)} dimensions")
 
-        if self.puzzle.shape[0] != self.puzzle.shape[1]:
+        if self.grid.shape[0] != self.grid.shape[1]:
             raise ValueError(
-                f"Grid must be quadratic shape, expected {self.N}x{self.N}, but actual {self.puzzle.shape[0]}x{self.puzzle.shape[1]}")
+                f"Grid must be quadratic shape, expected {self.N}x{self.N}, but actual {self.grid.shape[0]}x{self.grid.shape[1]}")
 
         if self.N % 2 != 0:
             raise ValueError("Grid size must be even")
@@ -32,11 +32,11 @@ class BinaryPuzzle:
         return True
 
     def check_binary(self) -> bool:
-        return np.isin(self.puzzle, [0, 1]).all()
+        return np.isin(self.grid, [0, 1]).all()
 
     def check_parity(self) -> bool:
-        return (self.puzzle.sum(axis=0) == self.N / 2).all() \
-            and (self.puzzle.sum(axis=1) == self.N / 2).all()
+        return (self.grid.sum(axis=0) == self.N / 2).all() \
+            and (self.grid.sum(axis=1) == self.N / 2).all()
 
     def _check_triples_row(self, puzzle) -> bool:
         for row in puzzle:
@@ -47,10 +47,10 @@ class BinaryPuzzle:
         return True
 
     def check_triples(self) -> bool:
-        return self._check_triples_row(self.puzzle) and self._check_triples_row(self.puzzle.T)
+        return self._check_triples_row(self.grid) and self._check_triples_row(self.grid.T)
 
     def check_uniqueness(self) -> bool:
-        return np.unique(self.puzzle, axis=0).shape[0] == self.N and np.unique(self.puzzle, axis=1).shape[1] == self.N
+        return np.unique(self.grid, axis=0).shape[0] == self.N and np.unique(self.grid, axis=1).shape[1] == self.N
 
     def check(self) -> bool:
         return self.check_binary() and self.check_parity() and self.check_triples() and self.check_uniqueness()
@@ -74,7 +74,7 @@ class BinaryPuzzle:
 
     def to_csv(self, filename: str) -> None:
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
-        np.savetxt(filename, self.puzzle, fmt='%i', delimiter=',')
+        np.savetxt(filename, self.grid, fmt='%i', delimiter=',')
 
     def __str__(self) -> str:
         s = ""
@@ -83,7 +83,7 @@ class BinaryPuzzle:
         s += f"┌───┬{''.join((self.N-2) * ['───┬'])}───┐\n"
 
         # Middle
-        for i, row in enumerate(self.puzzle):
+        for i, row in enumerate(self.grid):
             s += "│"
             for cell in row:
                 symbol = cell if cell != -1 else " "
@@ -148,9 +148,9 @@ class BinaryPuzzle:
         # Fill the prefilled values from input puzzle as constraints
         for row in rows:
             for col in cols:
-                if (self.puzzle[row][col] != -1):
+                if (self.grid[row][col] != -1):
                     prob += pulp.lpSum(
-                        [grid_vars[row][col][value]*value for value in values]) == self.puzzle[row][col]
+                        [grid_vars[row][col][value]*value for value in values]) == self.grid[row][col]
 
         solutions = []
         while True:
@@ -175,31 +175,3 @@ class BinaryPuzzle:
                 grid_vars[row][col][value]) == 1]) <= self.N**2 - 1
 
         return solutions
-
-
-if __name__ == '__main__':
-    from itertools import product
-    n_puzzles_category = 5
-    solution_counts = []
-
-    for size, difficulty in product([6, 8, 10, 12, 14], list(webpuzzle.Difficulty)):
-        for idx in range(n_puzzles_category):
-            print(
-                f"Solve puzzle nr={idx+1} size={size} difficulty={difficulty.name}")
-            input_puzzle = webpuzzle.get(
-                idx=idx, size=size, difficulty=difficulty)
-            puzzle = BinaryPuzzle(input_puzzle)
-            puzzle.to_csv(
-                f'puzzles/{size}x{size}/{difficulty.name.lower()}/{idx+1}/puzzle.csv')
-
-            solutions = puzzle.solve()
-            solution_counts.append(len(solutions))
-            print(f"Found {len(solutions)} solution(s)")
-            for i, solution in enumerate(solutions):
-                print(f"\n#{i+1} solution")
-                print(solution)
-                print(f"Solution is valid: {solution.verify()}\n")
-                solution.to_csv(
-                    f'puzzles/{size}x{size}/{difficulty.name.lower()}/{idx+1}/solution.csv')
-
-    print("Solution counts", np.bincount(solution_counts))
